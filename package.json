@@ -1,28 +1,30 @@
 {
-  "name": "photo-share-app",
-  "version": "1.0.0",
-  "description": "Una aplicación simple para compartir fotos entre dispositivos",
-  "main": "server.js",
+  "name": "servidor-fotos",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "@tailwindcss/postcss": "^4.1.11",
     "multer": "^1.4.5-lts.1",
+    "next": "^15.3.4",
     "qrcode": "^1.5.3",
-    "path": "^0.12.7",
-    "fs": "^0.0.1-security"
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
-  },
-  "keywords": [
-    "photo",
-    "sharing",
-    "web",
-    "app"
-  ],
-  "author": "Usuario",
-  "license": "MIT"
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "15.1.4",
+    "postcss": "^8.5.6",
+    "typescript": "^5"
+  }
 }
