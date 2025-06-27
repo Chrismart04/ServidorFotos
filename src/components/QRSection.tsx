@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import type { QRResponse } from "@/types";
 import React from "react";
+import Image from "next/image";
 
 export default function QRSection() {
   const [qrData, setQrData] = useState<QRResponse | null>(null);
@@ -50,10 +51,13 @@ export default function QRSection() {
           {error && <p className="text-red-500">Error generando código QR</p>}
 
           {qrData && (
-            <img
+            <Image
               src={qrData.qrCode}
               alt="Código QR"
-              className="max-w-[200px] mx-auto"
+              width={200}
+              height={200}
+              className="mx-auto"
+              priority
             />
           )}
         </div>

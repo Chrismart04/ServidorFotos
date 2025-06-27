@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Photo, DeleteResponse } from "@/types";
+import Image from "next/image";
 
 interface PhotoGalleryProps {
   refreshTrigger: number;
@@ -174,11 +175,12 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
                 className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
               >
                 <div className="relative">
-                  <img
+                  <Image
                     src={`/photos/${photo.filename}`}
                     alt="Foto"
+                    width={300}
+                    height={192}
                     className="w-full h-48 object-cover"
-                    loading="lazy"
                   />
                   <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-x-2">
                     <button
