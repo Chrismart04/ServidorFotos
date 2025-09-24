@@ -1,6 +1,6 @@
 export interface Photo {
   filename: string;
-  uploadDate: Date;
+  uploadDate: string; // ISO string
   size: number;
 }
 

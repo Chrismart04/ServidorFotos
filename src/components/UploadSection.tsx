@@ -1,68 +1,66 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import type { UploadResponse } from "@/types";
+import { requestPhotoUpload } from "@/features/photos/apiClient";
+import { useFlashMessages } from "@/features/ui/useFlashMessages";
 
 interface UploadSectionProps {
   onUploadComplete: () => void;
 }
 
-export default function UploadSection({ onUploadComplete }: UploadSectionProps) {
+export default function UploadSection({
+  onUploadComplete,
+}: UploadSectionProps) {
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<{ text: string; type: "success" | "error" }[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { messages, showMessage, clearMessages } = useFlashMessages();
 
-  const showMessage = useCallback((text: string, type: "success" | "error") => {
-    const message = { text, type };
-    setMessages(prev => [...prev, message]);
-    
-    setTimeout(() => {
-      setMessages(prev => prev.filter(m => m !== message));
-    }, 5000);
-  }, []);
-
-  const uploadFiles = async (files: FileList) => {
-    if (files.length === 0) return;
-
-    setLoading(true);
-    setMessages([]);
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      if (!file.type.startsWith("image/")) {
-        showMessage(`${file.name} no es un archivo de imagen válido`, "error");
-        continue;
-      }
-
+  const processUploadResult = useCallback(
+    async (file: File) => {
       try {
-        const formData = new FormData();
-        formData.append("photo", file);
-
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const result: UploadResponse = await response.json();
-          showMessage(`${result.originalName} subido exitosamente`, "success");
-        } else {
-          const error = await response.json();
-          showMessage(`Error subiendo ${file.name}: ${error.error}`, "error");
-        }
+        const result = await requestPhotoUpload(file);
+        showMessage(`${result.originalName} subido exitosamente`, "success");
       } catch (error) {
-        showMessage(`Error subiendo ${file.name}: ${error instanceof Error ? error.message : 'Error desconocido'}`, "error");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Error desconocido durante la carga";
+        showMessage(`Error subiendo ${file.name}: ${message}`, "error");
       }
-    }
+    },
+    [showMessage]
+  );
 
-    setLoading(false);
-    onUploadComplete();
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+  const uploadFiles = useCallback(
+    async (files: FileList) => {
+      if (files.length === 0) return;
+
+      setLoading(true);
+      clearMessages();
+
+      const items = Array.from(files);
+
+      for (const file of items) {
+        if (!file.type.startsWith("image/")) {
+          showMessage(
+            `${file.name} no es un archivo de imagen válido`,
+            "error"
+          );
+          continue;
+        }
+
+        await processUploadResult(file);
+      }
+
+      setLoading(false);
+      onUploadComplete();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [clearMessages, onUploadComplete, processUploadResult, showMessage]
+  );
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -80,7 +78,7 @@ export default function UploadSection({ onUploadComplete }: UploadSectionProps) 
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
-    
+
     const files = e.dataTransfer.files;
     uploadFiles(files);
   };
@@ -98,7 +96,7 @@ export default function UploadSection({ onUploadComplete }: UploadSectionProps) 
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           📤 Subir Fotos
         </h2>
-        
+
         <div
           className={`border-3 border-dashed rounded-2xl p-12 mb-6 transition-all duration-300 cursor-pointer ${
             dragOver
@@ -143,9 +141,9 @@ export default function UploadSection({ onUploadComplete }: UploadSectionProps) 
         )}
 
         <div className="space-y-4">
-          {messages.map((message, index) => (
+          {messages.map((message) => (
             <div
-              key={index}
+              key={message.id}
               className={`p-4 rounded-xl text-center font-medium ${
                 message.type === "success"
                   ? "bg-green-100 text-green-800 border border-green-200"

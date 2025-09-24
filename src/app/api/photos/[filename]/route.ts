@@ -1,30 +1,28 @@
 import { NextResponse } from "next/server";
-import { unlink } from "fs/promises";
-import { join } from "path";
-import { PHOTOS_DIR } from "@/lib/utils";
-import { existsSync } from "fs";
+import {
+  PhotoStorageError,
+  deleteStoredPhoto,
+} from "@/features/photos/photoStorage";
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ filename: string }> }
+  _request: Request,
+  { params }: { params: { filename: string } }
 ) {
   try {
-    const { filename } = await params;
-    const filePath = join(PHOTOS_DIR, filename);
-
-    if (!existsSync(filePath)) {
-      return NextResponse.json(
-        { error: "Foto no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    await unlink(filePath);
+    const { filename } = params;
+    await deleteStoredPhoto(filename);
 
     return NextResponse.json({
       message: "Foto eliminada exitosamente",
     });
   } catch (error) {
+    if (error instanceof PhotoStorageError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+
     console.error("Error deleting photo:", error);
     return NextResponse.json(
       { error: "Error eliminando foto" },

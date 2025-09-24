@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Photo, DeleteResponse } from "@/types";
 import Image from "next/image";
+import {
+  fetchPhotoList,
+  requestDeleteAllPhotos,
+  requestPhotoDeletion,
+} from "@/features/photos/apiClient";
+import { useFlashMessages } from "@/features/ui/useFlashMessages";
+import type { Photo } from "@/types";
 
 interface PhotoGalleryProps {
   refreshTrigger: number;
@@ -12,23 +18,12 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
-  const [messages, setMessages] = useState<{ text: string; type: "success" | "error" }[]>([]);
-
-  const showMessage = useCallback((text: string, type: "success" | "error") => {
-    const message = { text, type };
-    setMessages(prev => [...prev, message]);
-    
-    setTimeout(() => {
-      setMessages(prev => prev.filter(m => m !== message));
-    }, 5000);
-  }, []);
+  const { messages, showMessage, clearMessages } = useFlashMessages();
 
   const loadPhotos = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/photos-list");
-      if (!response.ok) throw new Error("Error loading photos");
-      const data: Photo[] = await response.json();
+      const data = await fetchPhotoList();
       setPhotos(data);
     } catch (error) {
       console.error("Error loading photos:", error);
@@ -46,7 +41,9 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
     const link = document.createElement("a");
     link.href = `/photos/${filename}`;
     link.download = filename;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
   };
 
   const deletePhoto = async (filename: string) => {
@@ -55,19 +52,15 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
     }
 
     try {
-      const response = await fetch(`/api/photos/${filename}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        showMessage("Foto eliminada exitosamente", "success");
-        loadPhotos();
-      } else {
-        const error = await response.json();
-        showMessage(`Error eliminando foto: ${error.error}`, "error");
-      }
+      await requestPhotoDeletion(filename);
+      showMessage("Foto eliminada exitosamente", "success");
+      loadPhotos();
     } catch (error) {
-      showMessage(`Error eliminando foto: ${error instanceof Error ? error.message : 'Error desconocido'}`, "error");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Error desconocido eliminando foto";
+      showMessage(`Error eliminando foto: ${message}`, "error");
     }
   };
 
@@ -84,7 +77,7 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
       downloadPhoto(photo.filename);
 
       if (i < photos.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
@@ -102,27 +95,23 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
 
     try {
       setDeleteAllLoading(true);
-      const response = await fetch("/api/photos", {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        const result: DeleteResponse = await response.json();
-        showMessage(result.message, "success");
-        loadPhotos();
-      } else {
-        const error = await response.json();
-        showMessage(`Error eliminando fotos: ${error.error}`, "error");
-      }
+      clearMessages();
+      const result = await requestDeleteAllPhotos();
+      showMessage(result.message, "success");
+      loadPhotos();
     } catch (error) {
-      showMessage(`Error eliminando fotos: ${error instanceof Error ? error.message : 'Error desconocido'}`, "error");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Error desconocido eliminando fotos";
+      showMessage(`Error eliminando fotos: ${message}`, "error");
     } finally {
       setDeleteAllLoading(false);
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("es-ES", {
+  const formatDate = (isoDate: string) => {
+    return new Date(isoDate).toLocaleDateString("es-ES", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -146,11 +135,11 @@ export default function PhotoGallery({ refreshTrigger }: PhotoGalleryProps) {
   return (
     <div className="bg-white rounded-3xl p-8 shadow-2xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">🖼️ Galería de Fotos</h2>
-      
+
       <div className="space-y-4 mb-6">
-        {messages.map((message, index) => (
+        {messages.map((message) => (
           <div
-            key={index}
+            key={message.id}
             className={`p-4 rounded-xl text-center font-medium ${
               message.type === "success"
                 ? "bg-green-100 text-green-800 border border-green-200"

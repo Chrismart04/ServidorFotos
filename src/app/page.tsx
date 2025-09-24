@@ -3,6 +3,7 @@
 import { useState } from "react";
 import QRSection from "@/components/QRSection";
 import UploadSection from "@/components/UploadSection";
+import TextBox from "@/components/TextBox";
 import PhotoGallery from "@/components/PhotoGallery";
 
 export default function Home() {
@@ -26,6 +27,9 @@ export default function Home() {
 
         <QRSection />
         <UploadSection onUploadComplete={handleUploadComplete} />
+        <div className="mb-8">
+          <TextBox />
+        </div>
         <PhotoGallery refreshTrigger={refreshTrigger} />
       </div>
     </div>
